@@ -1,0 +1,53 @@
+REQUEST 1:
+SELECT COUNT(film_id) AS nombre_film
+from film
+
+REQUEST 2:
+SELECT COUNT(DISTINCT film.film_id) AS available_movies
+from film, inventory, rental
+WHERE film AS f
+JOIN inventory AS i on i.film_id = f.film_id
+JOIN rental AS r on r.inventory_id = r.inventory_id
+AND rental.return_date IS NOT NULL
+
+REQUEST 3:
+SELECT EXTRACT(MONTH FROM payment.payment_date) AS Month, 
+EXTRACT(YEAR FROM payment.payment_date) AS Year,
+SUM(payment.amount) AS Revenue
+from payment
+GROUP BY Month, Year
+
+REQUEST 4:
+WITH RankedCategories AS (
+    SELECT
+        r.customer_id,
+        fc.category_id,
+        c.name AS category_name,
+        COUNT(*) AS category_count,
+        ROW_NUMBER() OVER(PARTITION BY r.customer_id ORDER BY COUNT(*) DESC) AS category_rank
+    FROM
+        rental AS r
+    JOIN
+        inventory AS i ON r.inventory_id = i.inventory_id
+    JOIN
+        film_category AS fc ON i.film_id = fc.film_id
+    JOIN
+        category AS c ON fc.category_id = c.category_id
+    GROUP BY
+        r.customer_id, fc.category_id, c.name
+)
+SELECT
+    rc.customer_id,
+    c.first_name,
+    c.last_name,
+    rc.category_name,
+    rc.category_count
+FROM
+    RankedCategories AS rc
+JOIN
+    customer AS c ON rc.customer_id = c.customer_id
+WHERE
+    rc.category_rank <= 3;
+    
+    
+    
